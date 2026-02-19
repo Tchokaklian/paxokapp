@@ -128,7 +128,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 #STATICFILES_DIRS = [BASE_DIR / "myapp/static"]  
-#STATIC_ROOT = BASE_DIR / "staticfiles"  # new
+STATIC_ROOT = BASE_DIR / "staticfiles"  # new
 
 #FROM_DOMAIN = "xoka06.eu.pythonanywhere.com"
 #TO_DOMAIN = "www.tchok.com"
@@ -153,7 +153,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 #SQLITE_PATH = '/home/xoka06/paxokapp/db.sqlite3'                           # PythonAnywhere
-SQLITE_PATH = 'C:/Users/pasca/Dev/python/centcols/paxokapp/db.sqlite3'      # Local PAXOKAPP
+SQLITE_PATH = 'C:/Dev/paxokapp/paxokapp_offi/paxokapp/db.sqlite3'
 
 LEVEL_COL_DEBUG = 1
 APP_CLIENT_ID = '2711'

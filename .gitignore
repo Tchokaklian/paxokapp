@@ -3,3 +3,6 @@
 myapp/migrations
 myapp/__pycache__
 .history/
+refactor/settings.py
+refactor/settings.py
+db.sqlite3

@@ -2,7 +2,8 @@ import datetime
 import sqlite3
 import time
 
-from aifc import Error
+#from aifc import Error
+# Test Commint From Atos
 
 from myapp import cols_tools
 from refactor.settings import SQLITE_PATH
@@ -22,7 +23,7 @@ def create_connection(db_file):
     conn = None
     try:
         conn = sqlite3.connect(db_file)
-    except Error as e:
+    except sqlite3.Error as e:
         print(e)
 
     return conn
