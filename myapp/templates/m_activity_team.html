@@ -31,7 +31,7 @@
         <td data-sort={{activity.act_start_date|date:"ymd"}} style="width:10%">
           {{activity.act_start_date|date:"d-M-Y" }} 
         </td>  
-        <td align="right" style="width:10%">
+        <td align="right" style="width:10%; color: green;{% if activity.get_act_dist_km > 100 %}color: red; font-weight: bold{% endif %}">
           {{activity.get_act_dist_km|floatformat:2}} 
         </td>         
         <td>          

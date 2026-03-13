@@ -37,8 +37,10 @@ urlpatterns = [
     path('stat_list/',StatListView.as_view(), name = 'stat_list'),         
     ###
     path('calendar/',MonthStatListView.as_view(), name = 'calendar'),     
-    ### Puissances
+    ### Puissances    
     path('puissances/',puissancesView, name = 'puissances'),     
+    ### Users
+    path('strava_user/<int:strava_user_id>',UserDetailView.as_view(),name='strava_user-detail'),
     ### FORM
     path('new_col/',new_col_form, name='new_col'),       
     ### m_pages

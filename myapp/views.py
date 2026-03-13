@@ -731,7 +731,20 @@ class ColsDetailView(generic.DetailView):
         ### f_debug_trace("views.py","ColsDetailView",liste_activities)
         return context
     
-       
+#########################################################################################    
+    
+class UserDetailView(generic.DetailView):
+    model = Strava_user
+    context_object_name = 'strava_user-detail'    
+    template_name = "user_detail.html"      
+
+    def get_object(self):        
+        strava_user_id = self.request.session.get('strava_user_id')         
+        set_col_count_list_this_year(strava_user_id)
+        return Strava_user.objects.all().filter(strava_user_id=strava_user_id)
+    
+#########################################################################################    
+
 class User_dashboardView(generic.ListView):	
 
     model = User_dashboard
@@ -815,7 +828,7 @@ def fVamYearView(request):
         year = date.strftime("%Y")
         strbegin = year+"-01"
         strend = year+"-12"
-        computed_vam = {strbegin: 0, strend: 0}
+        computed_vam = {strbegin: {'avg': 0, 'nb': 0, 'sum': 0}, strend: {'avg': 0, 'nb': 0, 'sum': 0}}
     return render(request, template, {'context': computed_vam})    
     
 ########################################################################################################
@@ -848,19 +861,43 @@ class mStatListView(generic.ListView):
 ########################################################################################################
 
 def puissancesView(request):
-    template = 'puissances.html' 
-    strava_user_id = request.session.get('strava_user_id')        
-    QueryPower = Activity.objects.filter(act_normal_power__gte=1).filter(strava_user_id=strava_user_id)    
-    x = []
-    y = []
-    n = []
+    from myapp.graph import get_plot_team
+    
+    template = 'puissances.html'
+    
+    # Récupère toutes les activités de tous les utilisateurs avec puissance
+    QueryPower = Activity.objects.filter(act_normal_power__gte=1).order_by('strava_user_id', '-act_start_date')
+    
+    # Groupe les données par utilisateur
+    users_data = {}
     for oneActivity in QueryPower:
-        if oneActivity.act_normal_power!='' and oneActivity.act_dist!='':
-            x.append(oneActivity.act_dist/1000)    
-            y.append(oneActivity.act_normal_power)            
-            n.append(oneActivity.act_name)
-    chart = get_plot(x,y,n)
-    return render (request, template,   {'chart': chart})
+        if oneActivity.act_normal_power != '' and oneActivity.act_dist != '':
+            user_id = oneActivity.strava_user_id
+            user_name = oneActivity.get_strava_user_name()
+            
+            if user_id not in users_data:
+                users_data[user_id] = {
+                    'user_name': user_name,
+                    'x': [],
+                    'y': [],
+                    'n': []
+                }
+            
+            users_data[user_id]['x'].append(oneActivity.act_dist / 1000)
+            users_data[user_id]['y'].append(oneActivity.act_normal_power)
+            # Ajouter la date formatée
+            date_str = oneActivity.act_start_date.strftime('%d/%m')
+            users_data[user_id]['n'].append(date_str)
+    
+    # Convertit en liste pour le graphique
+    users_list = list(users_data.values())
+    
+    if users_list:
+        chart = get_plot_team(users_list)
+    else:
+        chart = None
+    
+    return render(request, template, {'chart': chart})
 
 ########################################################################################################
 #                                   Historique d'un Segment                                            #

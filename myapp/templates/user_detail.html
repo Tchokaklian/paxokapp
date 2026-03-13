@@ -1,0 +1,18 @@
+{% extends "base_generic.html" %}
+
+{% block content %}
+<hr>        
+<table>    
+        <tr>                      
+            {%  for oneObject  in object %}  
+            <td><h3>{{ oneObject.get_strava_user_name}} </h3></td>                                                                   
+            {% endfor %}                         
+        </tr>                
+</table>                                                                         
+<hr>        
+
+    
+{% endblock %}   	
+
+<!doctype html>
+ 

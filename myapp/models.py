@@ -57,6 +57,12 @@ class Activity(models.Model):
 	def get_act_normal_power(self):
 		return self.act_normal_power
 	
+	def get_elevation_ratio(self):
+		"""Retourne le ratio dénivelé/distance en km avec 1 décimale"""
+		if self.act_dist and self.act_dist > 0 and self.act_den:
+			return round(self.act_den / (self.act_dist / 1000), 1)
+		return 0
+	
 	def get_col_passed(self):		
 		sc = self.strava_id		
 		q1 = Col_perform.objects.filter(strava_id=sc)
@@ -192,6 +198,15 @@ class Strava_user(models.Model):
 	country = models.CharField(max_length=50, null=True)
 	sex = models.CharField(max_length=100, null=True)
 
+	def get_strava_user_name(self):
+		suid = self.strava_user_id
+		q1 = Strava_user.objects.filter(strava_user_id=suid)
+		name = q1[0].strava_user
+		q2 = User.objects.filter(username=name)
+		first_name = q2[0].first_name
+		last_name = q2[0].last_name
+		return first_name + " " + last_name
+	
 class Segment(models.Model):	
 	segment_id = models.IntegerField(auto_created=True,  primary_key=True)
 	strava_segment_id= models.IntegerField(null=True)

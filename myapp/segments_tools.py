@@ -128,11 +128,21 @@ def compute_all_vam(listPerform):
     nb_vam = dict()
     sum_vam = dict()
     avg_vam = dict()
+    vam_data = dict()
  
     for onePerf in listPerform:
         datestr = str(onePerf.perf_date)   
         datestrmore = datestr[0:7]
         nb_vam[datestrmore]=nb_vam.get(datestrmore, 0) + 1
         sum_vam[datestrmore]=sum_vam.get(datestrmore,0)+onePerf.perf_vam
-        avg_vam[datestrmore]=int(sum_vam[datestrmore]/nb_vam[datestrmore])           
-    return avg_vam
+        avg_vam[datestrmore]=int(sum_vam[datestrmore]/nb_vam[datestrmore])
+    
+    # Créer un dictionnaire avec avg, nb et sum pour chaque mois
+    for key in avg_vam:
+        vam_data[key] = {
+            'avg': avg_vam[key],
+            'nb': nb_vam[key],
+            'sum': sum_vam[key]
+        }
+    
+    return vam_data
