@@ -22,6 +22,64 @@ from social_django.models import UserSocialAuth
 from django.db.models import Q
 from .myfunctions import *
 
+
+def is_mobile_user_agent(request):
+    """Return True when the request looks like it's coming from a mobile device.
+
+    If django-user-agents is installed and enabled, use the provided parser (more accurate).
+    Otherwise fallback to a basic UA substring check.
+    """
+
+    # Prefer django-user-agents when available (more reliable than simple substring checks)
+    ua = getattr(request, "user_agent", None)
+    if ua is not None:
+        return ua.is_mobile or ua.is_tablet
+
+    ua_string = request.META.get("HTTP_USER_AGENT", "").lower()
+    return any(tok in ua_string for tok in ("mobile", "android", "iphone", "ipad", "phone", "blackberry", "windows phone"))
+
+
+class MobileTemplateMixin:
+    """Mixin to automatically pick mobile templates and context keys.
+
+    - If the request is from a mobile user-agent (or force_mobile is set), it will look for a template
+      with the same name prefixed by "m_".
+    - It also exposes a mobile context key (prefixed with "m_") so existing mobile templates that
+      expect e.g. "m_activity_list" can keep working.
+    """
+
+    mobile_prefix = "m_"
+    force_mobile = False
+
+    def is_mobile(self):
+        if getattr(self, "force_mobile", False):
+            return True
+        if self.kwargs.get("force_mobile"):
+            return True
+        return is_mobile_user_agent(self.request)
+
+    def _mobile_template_name(self, template_name):
+        if "/" in template_name:
+            head, tail = template_name.rsplit("/", 1)
+            return f"{head}/{self.mobile_prefix}{tail}"
+        return f"{self.mobile_prefix}{template_name}"
+
+    def get_template_names(self):
+        names = super().get_template_names()
+        if self.is_mobile():
+            mobile_names = [self._mobile_template_name(name) for name in names]
+            # fallback to desktop templates if mobile template isn't found
+            return mobile_names + names
+        return names
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.is_mobile() and getattr(self, "context_object_name", None):
+            mobile_key = f"m_{self.context_object_name}"
+            context.setdefault(mobile_key, context.get(self.context_object_name))
+        return context
+
+
 #####################################################################
 #   Index View All devices                                          #
 #####################################################################
@@ -92,42 +150,20 @@ def mainIndexView(request,user):
 #   PC Index View                                                 #
 ###################################################################
 
-def base_map(request):
-        
-    user = request.user # Pulls in the Strava User data        
+def base_map(request, force_mobile=False):
+    user = request.user  # Pulls in the Strava User data
 
-    #user = "tpascal"    
-
-    f_debug_trace("views.py","base_map","user = "+str(user))
-
-    if (str(user) != 'AnonymousUser'):
-        context = mainIndexView(request,user)
-    else:
-        #context = None
-        context = {'Strava User': 'Not Connected'}
-                                    
-    return render(request, 'index.html', context)
-
-###################################################################
-#   Mobile Index view                                             #
-###################################################################
-
-
-def mIndexView(request):    
-        
-    user = request.user # Pulls in the Strava User data        
-
-    #user = "tpascal"    
+    # user = "tpascal"
 
     f_debug_trace("views.py","base_map","user = "+str(user))
 
-    if (str(user) != 'AnonymousUser'):        
-        context = mainIndexView(request,user)
+    if str(user) != 'AnonymousUser':
+        context = mainIndexView(request, user)
     else:
-        #context = None
-        context = {'Strava User': 'Not Connected'}
-                                    
-    return render(request, 'm_index.html', context)
+        context = {"Strava User": "Not Connected"}
+
+    template = "m_index.html" if force_mobile or is_mobile_user_agent(request) else "index.html"
+    return render(request, template, context)
 
 
 ###################################################################
@@ -228,6 +264,7 @@ def connected_map(request):
         myColsList =  select_all_cols(conn,"00")        
                 
         for ligne in range(len(activities_df)):
+            trainer = activities_df['trainer'][ligne]   ### 1 if HomeTrainer        
             AllVisitedCols = []
             myGPSPoints = []        
             strava_id = int(activities_df['id'][ligne])        
@@ -258,8 +295,12 @@ def connected_map(request):
             delete_activity(conn,strava_id)
             delete_col_perform(conn,strava_id)
             delete_activity_info(conn,strava_id)
+
+            act_trainer = 0
+            if trainer == 1:
+                act_trainer = 1
                         
-            insert_activity(conn,strava_user_id,strava_id,activity_name,act_start_date, act_dist, act_den,sport_type,act_time,act_power,act_status,act_noral_power)                
+            insert_activity(conn,strava_user_id,strava_id,activity_name,act_start_date, act_dist, act_den,sport_type,act_time,act_power,act_status,act_noral_power, act_trainer)                
 
             #####################
             #  Activity infos   #             
@@ -527,81 +568,6 @@ def act_map_by_col(request,col_id,act_id):
 def col_map_by_act(request,act_id,col_id):    
     return  col_map(request, col_id)
 
-def m_act_map(request, act_id):
-    """Vue pour afficher la carte d'une activité en mode mobile"""
-    my_strava_user = request.session.get("strava_user")    
-    my_strava_user_id = get_strava_user_id(request, my_strava_user)
-    
-    refresh_access_token(my_strava_user)
-
-    user = str(request.user)
-    get_strava_user_id(request, user)
-
-    myActivity_sq = Activity.objects.all().filter(act_id=act_id)    
-    access_token = "notFound"
-                   
-    userList = Strava_user.objects.all().filter(strava_user=user)
-    for userOne in userList:
-        myUser = userOne
-        access_token = myUser.access_token
-
-    for myActivity in myActivity_sq:            
-        strava_id = myActivity.strava_id
-        act_statut = myActivity.act_status
-        team_strava_user_id = myActivity.strava_user_id
-                        
-    if str(my_strava_user_id) != str(team_strava_user_id):
-        return HttpResponse('')
-        
-    activites_url = f"https://www.strava.com/api/v3/activities/{strava_id}"
-    header = {'Authorization': f'Bearer {access_token}'}            
-    param = {'id': strava_id}
-    
-    activities_json = requests.get(activites_url, headers=header, params=param).json()
-    activity_df_list = [pd.json_normalize(activities_json)]
-    
-    activities_df = pd.concat(activity_df_list)        
-    activities_df = activities_df.dropna(subset=['map.summary_polyline'])
-    activities_df['polylines'] = activities_df['map.summary_polyline'].apply(polyline.decode)
-    
-    # Centrage et zoom de la carte
-    centrer_point = map_center(activities_df['polylines'])           
-    map_zoom = cols_tools.map_zoom(centrer_point, activities_df['polylines'])    
-    
-    map = folium.Map(location=centrer_point, zoom_start=map_zoom, tiles='CartoDB voyager')
-
-    # Afficher la polyline
-    myGPSPoints = []
-    
-    for pl in activities_df['polylines']:
-        if len(pl) > 0:
-            folium.PolyLine(locations=pl, color='red').add_to(map)                
-            myPoint = PointGPS()                
-            myPoint = pl                            
-            myGPSPoints.append(myPoint)
-
-    # Afficher les cols
-    conn = create_connection(SQLITE_PATH)        
-    myColsList = getColByActivity(conn, strava_id)     
-        
-    for oneCol in myColsList:
-        myCol = PointCol()
-        myCol.setPoint(oneCol)
-        col_location = [myCol.lat, myCol.lon]
-        colColor = "blue"        
-        mypopup = myCol.name + " (" + str(myCol.alt) + "m)"
-        folium.Marker(col_location, popup=mypopup, icon=folium.Icon(color=colColor, icon="flag")).add_to(map)      
-                   
-    # Return HTML version of map
-    map_html = map._repr_html_()
-    
-    context = {
-        "main_map": map_html,
-        "activity": Activity.objects.get(act_id=act_id)
-    }
-
-    return render(request, "m_activity_map.html", context)
-
 ##########################################################################
 
 def fActivitiesListView(request, col_code):        
@@ -613,9 +579,29 @@ def fActivitiesListView(request, col_code):
     
 ##########################################################################    
 
+def fUserDetail(request,**kwargs):        
+    template = "user_detail.html"      
+
+    strava_user_id = kwargs['strava_user_id']
+
+    mydashBoard = User_dashboard.objects.filter(strava_user_id = strava_user_id)
+    for onDS in mydashBoard:
+        onDS.set_bike_year_km()
+        onDS.set_run_year_km()
+        onDS.set_col_count()
+        onDS.set_col2000_count()
+    
+    theUser =Strava_user.objects.filter(strava_user_id=strava_user_id)
+    listActivities = Activity.objects.filter(strava_user_id=strava_user_id).order_by('-act_start_date')[:10]
+    listColsOk = Col_counter.objects.filter(strava_user_id=strava_user_id).order_by("-col_count")[:10]                                                                   
+            
+    return render (request,template, {'Strava_User':theUser, 'listAct': listActivities, 'ColsOk': listColsOk})
+
+#########################################################################################  
+
 def fColsListView(request,**kwargs):        
 
-    template = 'cols_list.html' 
+    template = 'm_cols_list.html' if is_mobile_user_agent(request) else 'cols_list.html'
             
     code_paysregion = kwargs['pk']        
     
@@ -631,9 +617,7 @@ def fColsListView(request,**kwargs):
 #                               Liste des cols                           #
 ##########################################################################    
 
-### Vue PC ###
-
-class ColsListView(generic.ListView):    
+class ColsListView(MobileTemplateMixin, generic.ListView):    
 
     model = Col
     context_object_name = 'col_list'   # your own name for the list as a template    
@@ -643,24 +627,7 @@ class ColsListView(generic.ListView):
         return Col.objects.all().order_by("col_alt")
         
     def get_context_data(self, **kwargs):
-        context = super(ColsListView, self).get_context_data(**kwargs)
-        context['countries'] = Country.objects.all().order_by("country_name")
-        context['regions'] = Region.objects.all().order_by("region_code")          
-        return context
-    
-### Vue Mobile ###
-    
-class mColsListView(generic.ListView):    
-
-    model = Col
-    context_object_name = 'm_col_list'   # your own name for the list as a template    
-    template_name = "m_col_list.html"    # Specify your own template name/location
-
-    def get_queryset(self):        
-        return Col.objects.all().order_by("col_alt")
-        
-    def get_context_data(self, **kwargs):
-        context = super(mColsListView, self).get_context_data(**kwargs)
+        context = super().get_context_data(**kwargs)
         context['countries'] = Country.objects.all().order_by("country_name")
         context['regions'] = Region.objects.all().order_by("region_code")          
         return context
@@ -671,7 +638,7 @@ class mColsListView(generic.ListView):
 
 ### Vue PC ###              
 
-class  ColsOkListView(generic.ListView):        
+class ColsOkListView(MobileTemplateMixin, generic.ListView):        
 
     model = Col
     context_object_name = 'col_counter_list'              # your own name for the list as a template    
@@ -691,49 +658,17 @@ class  ColsOkListView(generic.ListView):
         context['annee'] = str(year)
         return context
                     
-### Vue Mobile ###
-
-class  mColsOkListView(generic.ListView):        
-
-    model = Col
-    context_object_name = 'col_counter_list'      # your own name for the list as a template    
-    template_name = "m_col_counter_list.html"       # Specify your own template name/location
-    
-    def get_queryset(self):            
-        strava_user_id = self.request.session.get('strava_user_id')    
-        ### f_debug_trace("views.py","ColsOkListView","strava_user_id = "+str(strava_user_id))
-        qsOk = Col_counter.objects.filter(strava_user_id=strava_user_id).order_by("-col_count")                                                                   
-        return qsOk
-    
-    def get_context_data(self, **kwargs):
-        context = super(mColsOkListView, self).get_context_data(**kwargs)
-        currentDateTime = datetime.datetime.now()
-        date = currentDateTime.date()
-        year = date.strftime("%Y")        
-        context['annee'] = str(year)
-        return context
-
 #########################################################################   
 #                       Liste des activités                             #
 #########################################################################   
 
 ### Vue PC ###              
 
-class ActivityListView(generic.ListView):        
+class ActivityListView(MobileTemplateMixin, generic.ListView):        
     model = Activity
     context_object_name = 'activity_list'   # your own name for the list as a template variable    
     template_name = "activity_list.html"    # Specify your own template name/location
-    def get_queryset(self):                
-        strava_user_id = self.request.session.get('strava_user_id')    
-        ### f_debug_trace("views.py","ActivityListView",Activity.objects.count())
-        return Activity.objects.filter(strava_user_id=strava_user_id).order_by("-act_start_date")
-    
-### Vue Mobile ###
 
-class mActivityListView(generic.ListView):       
-    model = Activity
-    context_object_name = 'm_activity_list'   # your own name for the list as a template variable    
-    template_name = "m_activity_list.html"    # Specify your own template name/location
     def get_queryset(self):                
         strava_user_id = self.request.session.get('strava_user_id')    
         ### f_debug_trace("views.py","ActivityListView",Activity.objects.count())
@@ -746,24 +681,11 @@ class mActivityListView(generic.ListView):
 
 ### Vue PC ###              
 
-class ActivityTeamView(generic.ListView):        
+class ActivityTeamView(MobileTemplateMixin, generic.ListView):        
     model = Activity
     context_object_name = 'activity_team'   # your own name for the list as a template variable    
     template_name = "activity_team.html"    # Specify your own template name/location
-    def get_queryset(self):                        
-        ### f_debug_trace("views.py","ActivityTeamView",Activity.objects.count())
-        nbcount = 100
-        strava_user_id = self.request.session.get('strava_user_id') 
-        if strava_user_id == None:
-            nbcount=0
-        return Activity.objects.order_by("-act_start_date")[:nbcount]
-    
-### Vue Mobile ###
 
-class mActivityTeamView(generic.ListView):        
-    model = Activity
-    context_object_name = 'm_activity_team'   # your own name for the list as a template variable    
-    template_name = "m_activity_team.html"    # Specify your own template name/location
     def get_queryset(self):                        
         ### f_debug_trace("views.py","ActivityTeamView",Activity.objects.count())
         nbcount = 100
@@ -774,11 +696,11 @@ class mActivityTeamView(generic.ListView):
 
 #############################################################################################
     
-class ActivityDetailView(generic.DetailView):                       
+class ActivityDetailView(MobileTemplateMixin, generic.DetailView):                       
     model = Activity        
     context_object_name = 'activity-detail'   # your own name for the list as a template variable    
-    template_name = "activity_detail.html"    # Specify your own template name/location
-    
+    template_name = "activity_detail.html"    # Specify your own template name/location   
+
     def get_template_names(self):
         """Sélectionne le bon template selon si c'est une requête mobile"""
         request_path = self.request.path
@@ -881,20 +803,7 @@ class ColsDetailView(generic.DetailView):
         ### f_debug_trace("views.py","ColsDetailView",liste_activities)
         return context
     
-#########################################################################################    
-    
-class UserDetailView(generic.DetailView):
-    model = Strava_user
-    context_object_name = 'strava_user-detail'    
-    template_name = "user_detail.html"      
-
-    def get_object(self):        
-        strava_user_id = self.request.session.get('strava_user_id')         
-        set_col_count_list_this_year(strava_user_id)
-        return Strava_user.objects.all().filter(strava_user_id=strava_user_id)
-    
-#########################################################################################    
-
+       
 class User_dashboardView(generic.ListView):	
 
     model = User_dashboard
@@ -921,7 +830,7 @@ class PerformListView(generic.ListView):
     template_name = "perform_list.html"                 # Specify your own template name/location
     def get_queryset(self):                
         strava_user_id = self.request.session.get('strava_user_id')             
-        perfList = Perform.objects.filter(strava_user_id=strava_user_id).order_by("-perf_vam")
+        perfList = Perform.objects.filter(strava_user_id=strava_user_id).order_by("-perf_date")
         return perfList
     
 class SegmentListView(generic.ListView):        
@@ -978,7 +887,7 @@ def fVamYearView(request):
         year = date.strftime("%Y")
         strbegin = year+"-01"
         strend = year+"-12"
-        computed_vam = {strbegin: {'avg': 0, 'nb': 0, 'sum': 0}, strend: {'avg': 0, 'nb': 0, 'sum': 0}}
+        computed_vam = {strbegin: 0, strend: 0}
     return render(request, template, {'context': computed_vam})    
     
 ########################################################################################################
@@ -987,21 +896,10 @@ def fVamYearView(request):
 
 ###     Vue PC
 
-class StatListView(generic.ListView):        
+class StatListView(MobileTemplateMixin, generic.ListView):        
     model = User_dashboard   
     context_object_name = 'stat_list'               # your own name for the list as a template    
     template_name = "stat_list.html"                # Specify your own template name/location
-    def get_queryset(self):                
-        qsOk = User_dashboard.objects.all().order_by('-bike_year_km')                
-        return qsOk           
-    
-
-###     Vue Mobile    
-
-class mStatListView(generic.ListView):        
-    model = User_dashboard   
-    context_object_name = 'm_stat_list'               # your own name for the list as a template    
-    template_name = "m_stat_list.html"                # Specify your own template name/location
     def get_queryset(self):                
         qsOk = User_dashboard.objects.all().order_by('-bike_year_km')                
         return qsOk           
@@ -1011,43 +909,33 @@ class mStatListView(generic.ListView):
 ########################################################################################################
 
 def puissancesView(request):
-    from myapp.graph import get_plot_team
-    
-    template = 'puissances.html'
-    
-    # Récupère toutes les activités de tous les utilisateurs avec puissance
-    QueryPower = Activity.objects.filter(act_normal_power__gte=1).order_by('strava_user_id', '-act_start_date')
-    
-    # Groupe les données par utilisateur
-    users_data = {}
+    template = 'puissances.html' 
+    # Mes Puissances
+    strava_user_id = request.session.get('strava_user_id')        
+    QueryPower = Activity.objects.filter(act_normal_power__gte=1).filter(strava_user_id=strava_user_id)
+    x = []
+    y = []
+    n = []
     for oneActivity in QueryPower:
-        if oneActivity.act_normal_power != '' and oneActivity.act_dist != '':
-            user_id = oneActivity.strava_user_id
-            user_name = oneActivity.get_strava_user_name()
-            
-            if user_id not in users_data:
-                users_data[user_id] = {
-                    'user_name': user_name,
-                    'x': [],
-                    'y': [],
-                    'n': []
-                }
-            
-            users_data[user_id]['x'].append(oneActivity.act_dist / 1000)
-            users_data[user_id]['y'].append(oneActivity.act_normal_power)
-            # Ajouter la date formatée
-            date_str = oneActivity.act_start_date.strftime('%d/%m')
-            users_data[user_id]['n'].append(date_str)
-    
-    # Convertit en liste pour le graphique
-    users_list = list(users_data.values())
-    
-    if users_list:
-        chart = get_plot_team(users_list)
-    else:
-        chart = None
-    
-    return render(request, template, {'chart': chart})
+        if oneActivity.act_normal_power!='' and oneActivity.act_dist!='':
+            x.append(oneActivity.act_dist/1000)    
+            y.append(oneActivity.act_normal_power)            
+            n.append(oneActivity.act_name)
+    chart = get_plot(x,y,n)
+
+    # Puissances All
+    QueryAllPower = Activity.objects.filter(act_normal_power__gte=1).filter(act_type='Ride').exclude(act_trainer=1)    
+    x = []
+    y = []
+    n = []
+    for oneActivity in QueryAllPower:
+        if oneActivity.act_normal_power!='' and oneActivity.act_dist!='':
+            x.append(oneActivity.act_dist/1000)    
+            y.append(oneActivity.act_normal_power)            
+            n.append(oneActivity.get_user_acronyme())                    
+    chartAll = get_plot_all(x,y,n)
+
+    return render (request, template, {'chart':chart ,'chartAll':chartAll})
 
 ########################################################################################################
 #                                   Historique d'un Segment                                            #

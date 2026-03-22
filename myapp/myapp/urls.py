@@ -35,26 +35,25 @@ urlpatterns = [
     ### VAM
     path('vamyear/',fVamYearView, name = 'vamyear'),         
     path('stat_list/',StatListView.as_view(), name = 'stat_list'),         
+    ### Users
+    path('strava_user/<int:strava_user_id>',fUserDetail,name='strava_user-detail'),
     ###
     path('calendar/',MonthStatListView.as_view(), name = 'calendar'),     
-    ### Puissances    
+    ### Puissances
     path('puissances/',puissancesView, name = 'puissances'),     
-    ### Users
-    path('strava_user/<int:strava_user_id>',UserDetailView.as_view(),name='strava_user-detail'),
     ### FORM
     path('new_col/',new_col_form, name='new_col'),       
-    ### m_pages
-    path('m_index/',mIndexView,name='m_index'),
-    path('m_activity/',mActivityListView.as_view(), name='m_activity'),                      
-    path('m_activity/<pk>', ActivityDetailView.as_view(), name="activity-detail"),
-    path('m_activity/<int:act_id>/map', m_act_map, name='activity-map'),            
-    path('m_cols/', mColsListView.as_view(), name='m_cols'),
+    ### m_pages (mobile shortcuts)
+    path('m_index/', base_map, {'force_mobile': True}, name='m_index'),
+    path('m_activity/', ActivityListView.as_view(force_mobile=True), name='m_activity'),                      
+    path('m_activity/<pk>', ActivityDetailView.as_view(force_mobile=True), name="activity-detail"),            
+    path('m_cols/', ColsListView.as_view(force_mobile=True), name='m_cols'),
     path('m_cols/<pk>/', ColsDetailView.as_view(), name = "col-detail"),                           
-    path('m_colsok/', mColsOkListView.as_view(), name='m_colsok'),                           
+    path('m_colsok/', ColsOkListView.as_view(force_mobile=True), name='m_colsok'),                           
     path('m_colsok/<pk>/', ColsDetailView.as_view(),name = "col-detail"),        
-    path('m_team/', mActivityTeamView.as_view(), name='m_team'),
+    path('m_team/', ActivityTeamView.as_view(force_mobile=True), name='m_team'),
     path('m_team/activity/<pk>', ActivityDetailView.as_view(), name="activity-detail"),     
-    path('m_stat_list/',mStatListView.as_view(), name = 'm_stat_list'),     
+    path('m_stat_list/', StatListView.as_view(force_mobile=True), name = 'm_stat_list'),     
 
 ]
 
