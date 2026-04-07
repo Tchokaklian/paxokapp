@@ -3,3 +3,12 @@
 myapp/migrations
 myapp/__pycache__
 .history/
+db.sqlite3
+myapp/templatetags/__pycache__/myfunctions.cpython-313.pyc
+refactor/settings.py
+refactor/__pycache__/__init__.cpython-313.pyc
+refactor/__pycache__/settings.cpython-313.pyc
+refactor/__pycache__/urls.cpython-313.pyc
+refactor/__pycache__/wsgi.cpython-313.pyc
+refactor/settings.py
+myapp/admin.py
