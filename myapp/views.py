@@ -489,19 +489,17 @@ def act_map(request, act_id):
     
     activities_df['polylines'] = activities_df['map.summary_polyline'].apply(polyline.decode)
     
-    # Centrage de la carte                       
-    centrer_point = map_center(activities_df['polylines'])           
-
-    # Recherche des Segments
+    # Centrage de la carte autour de la trace                    
     myRectangle = get_map_rectangle(activities_df['polylines'])
+    
+    # Recherche des Segments
     segment_explorer(myRectangle, access_token, strava_id, my_strava_user_id)
                              
-    # Zoom
-    ### f_debug_trace("col_tools.py","act_map","Call map_zoom ")
-    map_zoom = cols_tools.map_zoom(centrer_point,activities_df['polylines'])    
-    ### f_debug_trace("col_tools.py","act_map","After map_zoo")
+    # Créer la carte et la centrer sur les limites de la trace
+    map = folium.Map(location=[45.5236, 122.6750], zoom_start=10, tiles='CartoDB voyager')
     
-    map = folium.Map(location=centrer_point, zoom_start=map_zoom, tiles='CartoDB voyager')
+    # Fit la carte sur les limites de la trace (min_lat, min_lon, max_lat, max_lon)
+    map.fit_bounds([[myRectangle[0], myRectangle[1]], [myRectangle[2], myRectangle[3]]])
                                                    
     # kw = {
     #   "color": "blue",
@@ -1011,11 +1009,13 @@ def m_act_map(request, act_id):
     activities_df = activities_df.dropna(subset=['map.summary_polyline'])
     activities_df['polylines'] = activities_df['map.summary_polyline'].apply(polyline.decode)
     
-    # Centrage et zoom de la carte
-    centrer_point = map_center(activities_df['polylines'])           
-    map_zoom = cols_tools.map_zoom(centrer_point, activities_df['polylines'])    
+    # Centrage et zoom de la carte autour de la trace
+    myRectangle = get_map_rectangle(activities_df['polylines'])
     
-    map = folium.Map(location=centrer_point, zoom_start=map_zoom, tiles='CartoDB voyager')
+    map = folium.Map(location=[45.5236, 122.6750], zoom_start=10, tiles='CartoDB voyager')
+    
+    # Fit la carte sur les limites de la trace (min_lat, min_lon, max_lat, max_lon)
+    map.fit_bounds([[myRectangle[0], myRectangle[1]], [myRectangle[2], myRectangle[3]]])
 
     # Afficher la polyline
     myGPSPoints = []

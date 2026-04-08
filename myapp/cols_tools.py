@@ -158,10 +158,10 @@ def getListColsUniques(colsList: ColsList):
 ####################################################
     
 def map_center(listePoint= PointGPS() ):                
+        sum_x = 0.0
+        sum_y = 0.0
+        i = 0
         for unElt in listePoint:
-            sum_x = 0.0
-            sum_y = 0.0
-            i = 0               
             for unPt in unElt:
                 i=i+1
                 sum_x = sum_x + unPt[0]
@@ -173,12 +173,12 @@ def map_center(listePoint= PointGPS() ):
         return [sum_x,sum_y]
 
 def get_map_rectangle(listePoint= PointGPS() ):        
-        for unElt in listePoint:
-            min_x = 200.0
-            min_y = 200.0
-            max_x = -200.0
-            max_y = -200.0
-                       
+        min_x = 200.0
+        min_y = 200.0
+        max_x = -200.0
+        max_y = -200.0
+        
+        for unElt in listePoint:                   
             for unPt in unElt:   
 
                 if unPt[0] > max_x:
