@@ -3,6 +3,7 @@
 myapp/migrations
 myapp/__pycache__
 .history/
+<<<<<<< HEAD
 db.sqlite3
 myapp/templatetags/__pycache__/myfunctions.cpython-313.pyc
 refactor/settings.py
@@ -12,3 +13,8 @@ refactor/__pycache__/urls.cpython-313.pyc
 refactor/__pycache__/wsgi.cpython-313.pyc
 refactor/settings.py
 myapp/admin.py
+=======
+refactor/settings.py
+refactor/settings.py
+db.sqlite3
+>>>>>>> b5e9dda7d8294796e9bd75d5c653113858bc5da5

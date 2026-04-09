@@ -103,7 +103,11 @@ def mainIndexView(request,user):
     continent = "EUROPE"
     if view_region_info[0] == "AR":
         continent = "SOUTHAMERICA"
+<<<<<<< HEAD
     main_map = folium.Map(location=get_map_center(continent), zoom_start = 6, tiles='CartoDB voyager')  # Create base map
+=======
+    main_map = folium.Map(location=get_map_center(continent), zoom_start = 6, tiles='CartoDB voyager') # Create base map
+>>>>>>> b5e9dda7d8294796e9bd75d5c653113858bc5da5
     feature_group_Road = folium.FeatureGroup(name="Route").add_to(main_map)    
     feature_group_Piste = folium.FeatureGroup(name="Piste").add_to(main_map)    
     feature_group_Sentier = folium.FeatureGroup(name="Sentier").add_to(main_map)    
@@ -498,8 +502,12 @@ def act_map(request, act_id):
     # Créer la carte et la centrer sur les limites de la trace
     map = folium.Map(location=[45.5236, 122.6750], zoom_start=10, tiles='CartoDB voyager')
     
+<<<<<<< HEAD
     # Fit la carte sur les limites de la trace (min_lat, min_lon, max_lat, max_lon)
     map.fit_bounds([[myRectangle[0], myRectangle[1]], [myRectangle[2], myRectangle[3]]])
+=======
+    map = folium.Map(location=centrer_point, zoom_start=map_zoom, tiles='CartoDB voyager')
+>>>>>>> b5e9dda7d8294796e9bd75d5c653113858bc5da5
                                                    
     # kw = {
     #   "color": "blue",
@@ -564,6 +572,81 @@ def act_map_by_col(request,col_id,act_id):
 
 def col_map_by_act(request,act_id,col_id):    
     return  col_map(request, col_id)
+
+def m_act_map(request, act_id):
+    """Vue pour afficher la carte d'une activité en mode mobile"""
+    my_strava_user = request.session.get("strava_user")    
+    my_strava_user_id = get_strava_user_id(request, my_strava_user)
+    
+    refresh_access_token(my_strava_user)
+
+    user = str(request.user)
+    get_strava_user_id(request, user)
+
+    myActivity_sq = Activity.objects.all().filter(act_id=act_id)    
+    access_token = "notFound"
+                   
+    userList = Strava_user.objects.all().filter(strava_user=user)
+    for userOne in userList:
+        myUser = userOne
+        access_token = myUser.access_token
+
+    for myActivity in myActivity_sq:            
+        strava_id = myActivity.strava_id
+        act_statut = myActivity.act_status
+        team_strava_user_id = myActivity.strava_user_id
+                        
+    if str(my_strava_user_id) != str(team_strava_user_id):
+        return HttpResponse('')
+        
+    activites_url = f"https://www.strava.com/api/v3/activities/{strava_id}"
+    header = {'Authorization': f'Bearer {access_token}'}            
+    param = {'id': strava_id}
+    
+    activities_json = requests.get(activites_url, headers=header, params=param).json()
+    activity_df_list = [pd.json_normalize(activities_json)]
+    
+    activities_df = pd.concat(activity_df_list)        
+    activities_df = activities_df.dropna(subset=['map.summary_polyline'])
+    activities_df['polylines'] = activities_df['map.summary_polyline'].apply(polyline.decode)
+    
+    # Centrage et zoom de la carte
+    centrer_point = map_center(activities_df['polylines'])           
+    map_zoom = cols_tools.map_zoom(centrer_point, activities_df['polylines'])    
+    
+    map = folium.Map(location=centrer_point, zoom_start=map_zoom, tiles='CartoDB voyager')
+
+    # Afficher la polyline
+    myGPSPoints = []
+    
+    for pl in activities_df['polylines']:
+        if len(pl) > 0:
+            folium.PolyLine(locations=pl, color='red').add_to(map)                
+            myPoint = PointGPS()                
+            myPoint = pl                            
+            myGPSPoints.append(myPoint)
+
+    # Afficher les cols
+    conn = create_connection(SQLITE_PATH)        
+    myColsList = getColByActivity(conn, strava_id)     
+        
+    for oneCol in myColsList:
+        myCol = PointCol()
+        myCol.setPoint(oneCol)
+        col_location = [myCol.lat, myCol.lon]
+        colColor = "blue"        
+        mypopup = myCol.name + " (" + str(myCol.alt) + "m)"
+        folium.Marker(col_location, popup=mypopup, icon=folium.Icon(color=colColor, icon="flag")).add_to(map)      
+                   
+    # Return HTML version of map
+    map_html = map._repr_html_()
+    
+    context = {
+        "main_map": map_html,
+        "activity": Activity.objects.get(act_id=act_id)
+    }
+
+    return render(request, "m_activity_map.html", context)
 
 ##########################################################################
 
@@ -696,8 +779,13 @@ class ActivityTeamView(MobileTemplateMixin, generic.ListView):
 class ActivityDetailView(MobileTemplateMixin, generic.DetailView):                       
     model = Activity        
     context_object_name = 'activity-detail'   # your own name for the list as a template variable    
+<<<<<<< HEAD
     template_name = "activity_detail.html"    # Specify your own template name/location   
 
+=======
+    template_name = "activity_detail.html"    # Specify your own template name/location
+    
+>>>>>>> b5e9dda7d8294796e9bd75d5c653113858bc5da5
     def get_template_names(self):
         """Sélectionne le bon template selon si c'est une requête mobile"""
         request_path = self.request.path
@@ -800,7 +888,20 @@ class ColsDetailView(generic.DetailView):
         ### f_debug_trace("views.py","ColsDetailView",liste_activities)
         return context
     
-       
+#########################################################################################    
+    
+class UserDetailView(generic.DetailView):
+    model = Strava_user
+    context_object_name = 'strava_user-detail'    
+    template_name = "user_detail.html"      
+
+    def get_object(self):        
+        strava_user_id = self.request.session.get('strava_user_id')         
+        set_col_count_list_this_year(strava_user_id)
+        return Strava_user.objects.all().filter(strava_user_id=strava_user_id)
+    
+#########################################################################################    
+
 class User_dashboardView(generic.ListView):	
 
     model = User_dashboard
@@ -884,7 +985,7 @@ def fVamYearView(request):
         year = date.strftime("%Y")
         strbegin = year+"-01"
         strend = year+"-12"
-        computed_vam = {strbegin: 0, strend: 0}
+        computed_vam = {strbegin: {'avg': 0, 'nb': 0, 'sum': 0}, strend: {'avg': 0, 'nb': 0, 'sum': 0}}
     return render(request, template, {'context': computed_vam})    
     
 ########################################################################################################
@@ -906,6 +1007,7 @@ class StatListView(MobileTemplateMixin, generic.ListView):
 ########################################################################################################
 
 def puissancesView(request):
+<<<<<<< HEAD
     template = 'puissances.html' 
     # Mes Puissances
     strava_user_id = request.session.get('strava_user_id')        
@@ -933,6 +1035,45 @@ def puissancesView(request):
     chartAll = get_plot_all(x,y,n)
 
     return render (request, template, {'chart':chart ,'chartAll':chartAll})
+=======
+    from myapp.graph import get_plot_team
+    
+    template = 'puissances.html'
+    
+    # Récupère toutes les activités de tous les utilisateurs avec puissance
+    QueryPower = Activity.objects.filter(act_normal_power__gte=1).order_by('strava_user_id', '-act_start_date')
+    
+    # Groupe les données par utilisateur
+    users_data = {}
+    for oneActivity in QueryPower:
+        if oneActivity.act_normal_power != '' and oneActivity.act_dist != '':
+            user_id = oneActivity.strava_user_id
+            user_name = oneActivity.get_strava_user_name()
+            
+            if user_id not in users_data:
+                users_data[user_id] = {
+                    'user_name': user_name,
+                    'x': [],
+                    'y': [],
+                    'n': []
+                }
+            
+            users_data[user_id]['x'].append(oneActivity.act_dist / 1000)
+            users_data[user_id]['y'].append(oneActivity.act_normal_power)
+            # Ajouter la date formatée
+            date_str = oneActivity.act_start_date.strftime('%d/%m')
+            users_data[user_id]['n'].append(date_str)
+    
+    # Convertit en liste pour le graphique
+    users_list = list(users_data.values())
+    
+    if users_list:
+        chart = get_plot_team(users_list)
+    else:
+        chart = None
+    
+    return render(request, template, {'chart': chart})
+>>>>>>> b5e9dda7d8294796e9bd75d5c653113858bc5da5
 
 ########################################################################################################
 #                                   Historique d'un Segment                                            #

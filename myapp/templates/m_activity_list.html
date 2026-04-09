@@ -13,13 +13,27 @@
 {% block content %}
       
   {% if m_activity_list %}
+<<<<<<< HEAD
   <table width="100%" class="sortable n-last">            
     
+=======
+  <table class="sortable n-last">
+    <thead>
+    <tr>
+        <th class="indicator-left">Date</th>
+        <th class="indicator-left">Dist</th>
+        <th class="indicator-left">Ratio</th>        
+        <th class="indicator-left">Activité</th>                
+    </tr>    
+    </thead>
+    <tbody>
+>>>>>>> b5e9dda7d8294796e9bd75d5c653113858bc5da5
     {% for activity in m_activity_list %}      
       <tr>
         <td data-sort={{activity.act_start_date|date:"ymd"}}>
           {{activity.act_start_date|date:"d-M" }} 
         </td>  
+<<<<<<< HEAD
         <td align="right">
           {{activity.get_act_dist_km|floatformat:1}} 
         </td>          
@@ -27,6 +41,18 @@
           <a href="./{{activity.act_id}}" style="color: #333333;"> {{ activity.act_name|truncatechars:22 }}</a>           
         </td>                
       </tr>
+=======
+        <td align="right" style="width: 60px; color: green;" {% if activity.get_act_dist_km > 100 %}style="color: red; font-weight: bold; width: 60px;"{% endif %}>
+          {{activity.get_act_dist_km|floatformat:1}} 
+        </td>
+        <td align="right" style="width: 60px;">
+          {{activity.get_elevation_ratio|floatformat:1}} 
+        </td>  
+        <td >
+          <a href="./{{activity.act_id}}"> {{ activity.act_name }}</a>           
+        </td>         
+      </tr> 
+>>>>>>> b5e9dda7d8294796e9bd75d5c653113858bc5da5
     {% endfor %}
   
   </table>  

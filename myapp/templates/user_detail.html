@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <!doctype html>
 
 {% extends "base_generic.html" %}
@@ -83,3 +84,23 @@
 {% endif %}
 
 {% endblock %}      
+=======
+{% extends "base_generic.html" %}
+
+{% block content %}
+<hr>        
+<table>    
+        <tr>                      
+            {%  for oneObject  in object %}  
+            <td><h3>{{ oneObject.get_strava_user_name}} </h3></td>                                                                   
+            {% endfor %}                         
+        </tr>                
+</table>                                                                         
+<hr>        
+
+    
+{% endblock %}   	
+
+<!doctype html>
+ 
+>>>>>>> b5e9dda7d8294796e9bd75d5c653113858bc5da5

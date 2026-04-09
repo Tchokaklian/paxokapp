@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+
+{% extends "base_generic.html" %}  
+
+<head>      
+    <title>VAM !!!</title>
+    <meta name="charset" content="UTF-8" />
+    <meta name="author" content="xoka" />                        
+</head>
+
+<body>
+{% block content %}    
+
+<h2>Vitesses Ascensionnelles Moyennes </h2>
+
+<br>
+<table width="80%">    
+    <tr align="center" style="background-color: rgb(150, 150, 146)">        
+        <th>Année</th>
+        <th>Janvier</th>
+        <th>Février</th>
+        <th>Mars</th>
+        <th>Avril</th>
+        <th>Mai</th>
+        <th>Juin</th>
+        <th>Juillet</th>
+        <th>Aout</th>
+        <th>Septembre</th>
+        <th>Octobre</th>
+        <th>Novembre</th>
+        <th>Décembre</th>            
+    </tr>    
+    {% load myfunctions %}
+        {% with firstyear=context.items|get_first_year %}
+        
+            {% with ly=firstyear|get_all_year %}
+            {% for annee in ly %} 
+            <tr align="center"><th style="background-color: rgb(214, 214, 209)">{{ annee }}</th>    
+                {% with lm=1|get_all_monthes %}
+                    {% for mois in lm %}                                                                
+                        {% with vam=annee|makekey:mois|get_vam:context %}                                                
+                        <td align="center" style="{{ vam|get_td_color }}">                            
+                        {{ vam }}                            
+                        </td>
+                        {% endwith %}
+                    {% endfor %} 
+                {% endwith %}    
+            </tr>
+            {% endfor %}
+            {% endwith %}
+        
+        {% endwith %}       
+</table>
+
+{% endblock %}
+</body>
+
+</html>
+
+    
+
+

@@ -1,6 +1,13 @@
 import datetime
 import sqlite3
 import time
+<<<<<<< HEAD
+=======
+
+#from aifc import Error
+# Test Commint From Atos
+
+>>>>>>> b5e9dda7d8294796e9bd75d5c653113858bc5da5
 from myapp import cols_tools
 from refactor.settings import SQLITE_PATH
 from .models import Activity, Activity_info, Col, Col_counter as cc, Col_perform as cp, Country, Month_stat, Region, Strava_user, User_dashboard, User_var
@@ -17,11 +24,17 @@ def create_connection(db_file):
     :return: Connection object or None
     """
     try:
+<<<<<<< HEAD
         with sqlite3.connect(db_file) as conn:
             # interact with database
             pass
     except sqlite3.OperationalError as e:
         print("Failed to open database:", e)        
+=======
+        conn = sqlite3.connect(db_file)
+    except sqlite3.Error as e:
+        print(e)
+>>>>>>> b5e9dda7d8294796e9bd75d5c653113858bc5da5
 
     return conn
 

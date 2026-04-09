@@ -57,7 +57,26 @@ def get_all_monthes(m):
 ### Get VAM Value 
 @register.filter
 def get_vam(cle,liste):        
-    return liste.get(cle,"")
+    vam_data = liste.get(cle,"")
+    if isinstance(vam_data, dict):
+        return vam_data.get('avg', '')
+    return vam_data
+
+### Get VAM Count
+@register.filter
+def get_vam_count(cle,liste):        
+    vam_data = liste.get(cle,"")
+    if isinstance(vam_data, dict):
+        return vam_data.get('nb', '')
+    return ''
+
+### Get VAM Sum
+@register.filter
+def get_vam_sum(cle,liste):        
+    vam_data = liste.get(cle,"")
+    if isinstance(vam_data, dict):
+        return vam_data.get('sum', '')
+    return ''
 
 ### Rebuiding the key
 @register.filter
