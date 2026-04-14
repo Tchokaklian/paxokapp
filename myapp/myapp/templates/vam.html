@@ -6,13 +6,23 @@
 <head>      
     <title>VAM !!!</title>
     <meta name="charset" content="UTF-8" />
-    <meta name="author" content="xoka" />                        
+    <meta name="author" content="xoka" />
+    <style>
+        .vam-cell {
+            cursor: help;
+        }
+        .segment-list {
+            max-width: 400px;
+            word-wrap: break-word;
+        }
+    </style>                       
 </head>
 
 <body>
 {% block content %}    
 
 <h2>Vitesses Ascensionnelles Moyennes </h2>
+<p><small><i>Passez la souris sur une valeur pour voir le détail du calcul et la liste des segments</i></small></p>
 
 <br>
 <table width="80%">    
@@ -39,10 +49,14 @@
             <tr align="center"><th style="background-color: rgb(214, 214, 209)">{{ annee }}</th>    
                 {% with lm=1|get_all_monthes %}
                     {% for mois in lm %}                                                                
-                        {% with vam=annee|makekey:mois|get_vam:context %}                                                
-                        <td align="center" style="{{ vam|get_td_color }}">                            
+                        {% with vam=annee|makekey:mois|get_vam:context %}
+                        {% with nb=annee|makekey:mois|get_vam_count:context %}
+                        {% with segments=annee|makekey:mois|get_vam_segments:context %}
+                        <td align="center" style="{{ vam|get_td_color }}" class="vam-cell" title="{% if nb %}{{ nb }} montées = {{ vam }} m/h&#10;Segments: {{ segments }}{% else %}Aucune donnée{% endif %}">                            
                         {{ vam }}                            
                         </td>
+                        {% endwith %}
+                        {% endwith %}
                         {% endwith %}
                     {% endfor %} 
                 {% endwith %}    
@@ -52,6 +66,15 @@
         
         {% endwith %}       
 </table>
+
+<hr>
+<h3>Explication</h3>
+<p>La <b>VAM (Vitesse Ascensionnelle Moyenne)</b> en m/h est calculée ainsi :</p>
+<ul>
+    <li><b>Pour chaque montée</b> : VAM = (3600 × dénivelé en m) / temps en secondes</li>
+    <li><b>Pour chaque mois</b> : Moyenne = somme de toutes les VAM / nombre de montées</li>
+</ul>
+<p><i>Passez la souris sur une valeur pour voir le nombre de montées, la VAM moyenne, et la liste des segments réalisés ce mois-là.</i></p>
 
 {% endblock %}
 </body>

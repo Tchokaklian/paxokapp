@@ -116,31 +116,31 @@ def getFilterdColList(colsList: ColsList, pointsList: GPSPointsList):
 ####################################################
 
 def getColsVisited(colsList: ColsList, pointsList: GPSPointsList):
-    visitedColList = []
+    # Filtre spatial d'abord pour réduire l'espace de recherche
+    filteredColsList = getFilterdColList(colsList, pointsList)
+    
+    # Utilise un set pour éviter les doublons et les vérifications répétées
+    visitedColSet = set()
+    
     for onePoint in pointsList:
         myGPSPoint = PointGPS()
         myGPSPoint.lat = onePoint[0]
         myGPSPoint.lon = onePoint[1]
-        laList = getColsVisitedList(colsList,myGPSPoint)
-        visitedColList = visitedColList + laList
+        laList = getColsVisitedList(filteredColsList, myGPSPoint)
+        # Ajoute directement au set (pas de doublons)
+        visitedColSet.update(laList)
     
-    visitedColList = N.unique(visitedColList) 
-
-    return visitedColList
+    return list(visitedColSet)
 
 ####################################################
 
 def getColsVisitedList(colsList: ColsList, onePoint: PointGPS ):
     visitedList = []
     for oneCol in colsList:        
-        myColPoint = PointCol()
-        myColPoint.lat = oneCol.lat
-        myColPoint.lon = oneCol.lon
-        myColPoint.name = oneCol.name
-        myColPoint.col_code = oneCol.col_code        
-        distance = getDistanceBetween2Points(myColPoint,onePoint)                
+        # Accès direct aux attributs, pas de création d'objet intermédiaire
+        distance = getDistanceBetweenPoints(oneCol.lat, oneCol.lon, onePoint.lat, onePoint.lon, 'kilometers')                
         if distance < 0.250:         
-            visitedList.append(myColPoint.col_code)                            
+            visitedList.append(oneCol.col_code)                            
 
         ########################################################################
         #   if oneCol.col_code == "FR-06-0963b":

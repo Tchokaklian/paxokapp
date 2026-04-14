@@ -174,6 +174,7 @@ def connected_map(request):
         
     # Make your map object    
     main_map = folium.Map(location=get_map_center("EUROPE"), zoom_start = 6, tiles='CartoDB voyager') # Create base map 
+    conn = None  # Initialize conn to prevent UnboundLocalError
     user = request.user # Pulls in the Strava User data                
     ### f_debug_trace("views.py","connected_map","user = "+str(user))
     get_strava_user_id(request,user)
@@ -490,19 +491,27 @@ def act_map(request, act_id):
     
     activities_df['polylines'] = activities_df['map.summary_polyline'].apply(polyline.decode)
     
-    # Centrage de la carte                       
-    centrer_point = map_center(activities_df['polylines'])           
-
-    # Recherche des Segments
+    # Centrage de la carte
     myRectangle = get_map_rectangle(activities_df['polylines'])
-    segment_explorer(myRectangle, access_token, strava_id, my_strava_user_id)
-                             
-    # Zoom
-    ### f_debug_trace("col_tools.py","act_map","Call map_zoom ")
-    map_zoom = cols_tools.map_zoom(centrer_point,activities_df['polylines'])    
-    ### f_debug_trace("col_tools.py","act_map","After map_zoo")
     
-    map = folium.Map(location=centrer_point, zoom_start=map_zoom, tiles='CartoDB voyager')
+    # Recherche des Segments
+    segment_explorer(myRectangle, access_token, strava_id, my_strava_user_id)
+    
+    # Créer la carte avec zoom initial
+    map = folium.Map(location=[45.5236, 122.6750], zoom_start=10, tiles='CartoDB voyager')
+    
+    # Afficher le rectangle minimal contenant la trace GPS
+    if len(myRectangle) == 4 and myRectangle[0] != 200.0:
+        folium.Rectangle(
+            bounds=[[myRectangle[0], myRectangle[1]], [myRectangle[2], myRectangle[3]]],
+            color='blue',
+            weight=2,
+            fill=True,
+            fillColor='blue',
+            fillOpacity=0.1,
+            popup='Bounding box de la trace',
+            tooltip='Rectangle englobant la trace GPS'
+        ).add_to(map)
                                                    
     # kw = {
     #   "color": "blue",
@@ -544,6 +553,15 @@ def act_map(request, act_id):
         mypopup = myCol.name+" ("+str(myCol.alt)+"m)"
         folium.Marker(col_location, popup=mypopup,icon=folium.Icon(color=colColor, icon="flag")).add_to(map)      
         ##### Count Update #####
+    
+    # Adapter la vue aux limites de la trace GPS APRÈS avoir ajouté tous les éléments
+    if len(myRectangle) == 4 and myRectangle[0] != 200.0:
+        padding_coord = 0.002  # ~200m de padding
+        bounds = [
+            [myRectangle[0] - padding_coord, myRectangle[1] - padding_coord],
+            [myRectangle[2] + padding_coord, myRectangle[3] + padding_coord]
+        ]
+        map.fit_bounds(bounds, padding=(100, 100))
                    
             
     # Return HTML version of map

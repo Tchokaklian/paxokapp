@@ -34,10 +34,6 @@ def get_altitude_profile_graph(decoded_polyline, total_elevation=None, total_dis
     total_elevation: dénivelé total en mètres (optionnel)
     total_distance: distance totale en km (optionnel)
     """
-<<<<<<< HEAD
-    
-=======
->>>>>>> b5e9dda7d8294796e9bd75d5c653113858bc5da5
     if not decoded_polyline or len(decoded_polyline) == 0:
         return None
         
@@ -136,9 +132,6 @@ def get_graph():
     buffer.close()
     return graph
 
-<<<<<<< HEAD
-### get_plot
-=======
 def get_color_for_user(user_index):
     """Retourne une couleur unique pour chaque utilisateur"""
     colors = ['blue', 'green', 'red', 'purple', 'orange', 'brown', 'pink', 'gray', 'olive', 'cyan']
@@ -176,7 +169,6 @@ def get_plot_team(users_data):
     graph = get_graph()
     
     return graph
->>>>>>> b5e9dda7d8294796e9bd75d5c653113858bc5da5
 
 def get_plot(x,y,n):
 

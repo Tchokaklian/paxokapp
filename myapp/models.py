@@ -224,11 +224,7 @@ class Strava_user(models.Model):
 		first_name = q2[0].first_name
 		last_name = q2[0].last_name
 		return first_name + " " + last_name
-<<<<<<< HEAD
-		
-=======
 	
->>>>>>> b5e9dda7d8294796e9bd75d5c653113858bc5da5
 class Segment(models.Model):	
 	segment_id = models.IntegerField(auto_created=True,  primary_key=True)
 	strava_segment_id= models.IntegerField(null=True)

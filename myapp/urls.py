@@ -1,4 +1,3 @@
-from django import views
 from django.urls import path, include
 
 from .views import *
@@ -45,21 +44,12 @@ urlpatterns = [
     path('strava_user/<int:strava_user_id>',UserDetailView.as_view(),name='strava_user-detail'),
     ### FORM
     path('new_col/',new_col_form, name='new_col'),       
-<<<<<<< HEAD
-    ### m_pages (mobile shortcuts)
+    ### m_pages
     path('m_index/', base_map, {'force_mobile': True}, name='m_index'),
     path('m_activity/', ActivityListView.as_view(force_mobile=True), name='m_activity'),                      
-    path('m_activity/<pk>', ActivityDetailView.as_view(force_mobile=True), name="activity-detail"),            
-    path('m_activity/<int:act_id>/map', m_act_map, name='activity-map'),            
-    path('m_cols/', ColsListView.as_view(force_mobile=True), name='m_cols'),
-=======
-    ### m_pages
-    path('m_index/',mIndexView,name='m_index'),
-    path('m_activity/',mActivityListView.as_view(), name='m_activity'),                      
     path('m_activity/<pk>', ActivityDetailView.as_view(), name="activity-detail"),
     path('m_activity/<int:act_id>/map', m_act_map, name='activity-map'),            
-    path('m_cols/', mColsListView.as_view(), name='m_cols'),
->>>>>>> b5e9dda7d8294796e9bd75d5c653113858bc5da5
+    path('m_cols/', ColsListView.as_view(force_mobile=True), name='m_cols'),
     path('m_cols/<pk>/', ColsDetailView.as_view(), name = "col-detail"),                           
     path('m_colsok/', ColsOkListView.as_view(force_mobile=True), name='m_colsok'),                           
     path('m_colsok/<pk>/', ColsDetailView.as_view(),name = "col-detail"),        

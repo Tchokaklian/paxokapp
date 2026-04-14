@@ -103,11 +103,7 @@ def mainIndexView(request,user):
     continent = "EUROPE"
     if view_region_info[0] == "AR":
         continent = "SOUTHAMERICA"
-<<<<<<< HEAD
-    main_map = folium.Map(location=get_map_center(continent), zoom_start = 6, tiles='CartoDB voyager')  # Create base map
-=======
     main_map = folium.Map(location=get_map_center(continent), zoom_start = 6, tiles='CartoDB voyager') # Create base map
->>>>>>> b5e9dda7d8294796e9bd75d5c653113858bc5da5
     feature_group_Road = folium.FeatureGroup(name="Route").add_to(main_map)    
     feature_group_Piste = folium.FeatureGroup(name="Piste").add_to(main_map)    
     feature_group_Sentier = folium.FeatureGroup(name="Sentier").add_to(main_map)    
@@ -177,6 +173,7 @@ def connected_map(request):
         
     # Make your map object    
     main_map = folium.Map(location=get_map_center("EUROPE"), zoom_start = 6, tiles='CartoDB voyager') # Create base map 
+    conn = None  # Initialize conn to prevent UnboundLocalError
     user = request.user # Pulls in the Strava User data                
     ### f_debug_trace("views.py","connected_map","user = "+str(user))
     get_strava_user_id(request,user)
@@ -493,33 +490,27 @@ def act_map(request, act_id):
     
     activities_df['polylines'] = activities_df['map.summary_polyline'].apply(polyline.decode)
     
-    # Centrage de la carte autour de la trace                    
+    # Centrage de la carte
     myRectangle = get_map_rectangle(activities_df['polylines'])
     
     # Recherche des Segments
     segment_explorer(myRectangle, access_token, strava_id, my_strava_user_id)
-                             
-    # Créer la carte et la centrer sur les limites de la trace
-    map = folium.Map(location=[45.5236, 122.6750], zoom_start=10, tiles='CartoDB voyager')
     
-<<<<<<< HEAD
-    # Fit la carte sur les limites de la trace (min_lat, min_lon, max_lat, max_lon)
-    map.fit_bounds([[myRectangle[0], myRectangle[1]], [myRectangle[2], myRectangle[3]]])
-=======
-    map = folium.Map(location=centrer_point, zoom_start=map_zoom, tiles='CartoDB voyager')
->>>>>>> b5e9dda7d8294796e9bd75d5c653113858bc5da5
-                                                   
-    # kw = {
-    #   "color": "blue",
-    #   "line_cap": "round",
-    #   "fill": True,
-    #   "fill_color": "red",
-    #   "weight": 5,
-    #   "popup": "Mon rectangle",
-    #   "tooltip": "<strong>Click me!</strong>",
-    #   }        
+    # Créer la carte avec zoom initial
+    map = folium.Map(location=[45.5236, -122.6750], zoom_start=10, tiles='cartodb positron')
     
-    #folium.Rectangle(bounds=[[myRectangle[0],myRectangle[1]],[myRectangle[2],myRectangle[3]]],line_join="round",dash_array="5, 5",**kw,).add_to(map)
+    # Afficher le rectangle minimal contenant la trace GPS
+    if len(myRectangle) == 4 and myRectangle[0] != 200.0:
+        folium.Rectangle(
+            bounds=[[myRectangle[0], myRectangle[1]], [myRectangle[2], myRectangle[3]]],
+            color='blue',
+            weight=2,
+            fill=True,
+            fillColor='blue',
+            fillOpacity=0.1,
+            popup='Bounding box de la trace',
+            tooltip='Rectangle englobant la trace GPS'
+        ).add_to(map)
 
     ###############################################
     #   Plot Polylines onto Folium Map
@@ -549,6 +540,15 @@ def act_map(request, act_id):
         mypopup = myCol.name+" ("+str(myCol.alt)+"m)"
         folium.Marker(col_location, popup=mypopup,icon=folium.Icon(color=colColor, icon="flag")).add_to(map)      
         ##### Count Update #####
+    
+    # Adapter la vue aux limites de la trace GPS APRÈS avoir ajouté tous les éléments
+    if len(myRectangle) == 4 and myRectangle[0] != 200.0:
+        padding_coord = 0.002  # ~200m de padding
+        bounds = [
+            [myRectangle[0] - padding_coord, myRectangle[1] - padding_coord],
+            [myRectangle[2] + padding_coord, myRectangle[3] + padding_coord]
+        ]
+        map.fit_bounds(bounds, padding=(100, 100))
                    
             
     # Return HTML version of map
@@ -611,10 +611,23 @@ def m_act_map(request, act_id):
     activities_df['polylines'] = activities_df['map.summary_polyline'].apply(polyline.decode)
     
     # Centrage et zoom de la carte
-    centrer_point = map_center(activities_df['polylines'])           
-    map_zoom = cols_tools.map_zoom(centrer_point, activities_df['polylines'])    
+    myRectangle = get_map_rectangle(activities_df['polylines'])
     
-    map = folium.Map(location=centrer_point, zoom_start=map_zoom, tiles='CartoDB voyager')
+    # Créer la carte avec zoom initial
+    map = folium.Map(location=[45.5236, 122.6750], zoom_start=10, tiles='CartoDB voyager')
+    
+    # Afficher le rectangle minimal contenant la trace GPS
+    if len(myRectangle) == 4 and myRectangle[0] != 200.0:
+        folium.Rectangle(
+            bounds=[[myRectangle[0], myRectangle[1]], [myRectangle[2], myRectangle[3]]],
+            color='blue',
+            weight=2,
+            fill=True,
+            fillColor='blue',
+            fillOpacity=0.1,
+            popup='Bounding box de la trace',
+            tooltip='Rectangle englobant la trace GPS'
+        ).add_to(map)
 
     # Afficher la polyline
     myGPSPoints = []
@@ -636,7 +649,16 @@ def m_act_map(request, act_id):
         col_location = [myCol.lat, myCol.lon]
         colColor = "blue"        
         mypopup = myCol.name + " (" + str(myCol.alt) + "m)"
-        folium.Marker(col_location, popup=mypopup, icon=folium.Icon(color=colColor, icon="flag")).add_to(map)      
+        folium.Marker(col_location, popup=mypopup, icon=folium.Icon(color=colColor, icon="flag")).add_to(map)
+    
+    # Adapter la vue aux limites de la trace GPS APRÈS avoir ajouté tous les éléments
+    if len(myRectangle) == 4 and myRectangle[0] != 200.0:
+        padding_coord = 0.002  # ~200m de padding
+        bounds = [
+            [myRectangle[0] - padding_coord, myRectangle[1] - padding_coord],
+            [myRectangle[2] + padding_coord, myRectangle[3] + padding_coord]
+        ]
+        map.fit_bounds(bounds, padding=(100, 100))      
                    
     # Return HTML version of map
     map_html = map._repr_html_()
@@ -779,13 +801,8 @@ class ActivityTeamView(MobileTemplateMixin, generic.ListView):
 class ActivityDetailView(MobileTemplateMixin, generic.DetailView):                       
     model = Activity        
     context_object_name = 'activity-detail'   # your own name for the list as a template variable    
-<<<<<<< HEAD
-    template_name = "activity_detail.html"    # Specify your own template name/location   
-
-=======
     template_name = "activity_detail.html"    # Specify your own template name/location
     
->>>>>>> b5e9dda7d8294796e9bd75d5c653113858bc5da5
     def get_template_names(self):
         """Sélectionne le bon template selon si c'est une requête mobile"""
         request_path = self.request.path
@@ -1007,35 +1024,6 @@ class StatListView(MobileTemplateMixin, generic.ListView):
 ########################################################################################################
 
 def puissancesView(request):
-<<<<<<< HEAD
-    template = 'puissances.html' 
-    # Mes Puissances
-    strava_user_id = request.session.get('strava_user_id')        
-    QueryPower = Activity.objects.filter(act_normal_power__gte=1).filter(strava_user_id=strava_user_id)
-    x = []
-    y = []
-    n = []
-    for oneActivity in QueryPower:
-        if oneActivity.act_normal_power!='' and oneActivity.act_dist!='':
-            x.append(oneActivity.act_dist/1000)    
-            y.append(oneActivity.act_normal_power)            
-            n.append(oneActivity.act_name)
-    chart = get_plot(x,y,n)
-
-    # Puissances All
-    QueryAllPower = Activity.objects.filter(act_normal_power__gte=1).filter(act_type='Ride').exclude(act_trainer=1)    
-    x = []
-    y = []
-    n = []
-    for oneActivity in QueryAllPower:
-        if oneActivity.act_normal_power!='' and oneActivity.act_dist!='':
-            x.append(oneActivity.act_dist/1000)    
-            y.append(oneActivity.act_normal_power)            
-            n.append(oneActivity.get_user_acronyme())                    
-    chartAll = get_plot_all(x,y,n)
-
-    return render (request, template, {'chart':chart ,'chartAll':chartAll})
-=======
     from myapp.graph import get_plot_team
     
     template = 'puissances.html'
@@ -1073,7 +1061,6 @@ def puissancesView(request):
         chart = None
     
     return render(request, template, {'chart': chart})
->>>>>>> b5e9dda7d8294796e9bd75d5c653113858bc5da5
 
 ########################################################################################################
 #                                   Historique d'un Segment                                            #
@@ -1150,10 +1137,15 @@ def m_act_map(request, act_id):
     activities_df = activities_df.dropna(subset=['map.summary_polyline'])
     activities_df['polylines'] = activities_df['map.summary_polyline'].apply(polyline.decode)
     
-    # Centrage et zoom de la carte autour de la trace
+    # Centrage et zoom de la carte
     myRectangle = get_map_rectangle(activities_df['polylines'])
     
+    # Créer la carte avec zoom initial, puis l'adapter aux limites de la trace
     map = folium.Map(location=[45.5236, 122.6750], zoom_start=10, tiles='CartoDB voyager')
+    
+    # Adapter la vue aux limites de la trace GPS pour un centrage optimal
+    if len(myRectangle) == 4 and myRectangle[0] != 200.0:
+        map.fit_bounds([[myRectangle[0], myRectangle[1]], [myRectangle[2], myRectangle[3]]])
     
     # Fit la carte sur les limites de la trace (min_lat, min_lon, max_lat, max_lon)
     map.fit_bounds([[myRectangle[0], myRectangle[1]], [myRectangle[2], myRectangle[3]]])

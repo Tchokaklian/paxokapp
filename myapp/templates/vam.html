@@ -11,6 +11,10 @@
         .vam-cell {
             cursor: help;
         }
+        .segment-list {
+            max-width: 400px;
+            word-wrap: break-word;
+        }
     </style>                       
 </head>
 
@@ -18,7 +22,7 @@
 {% block content %}    
 
 <h2>Vitesses Ascensionnelles Moyennes </h2>
-<p><small><i>Passez la souris sur une valeur pour voir le détail du calcul</i></small></p>
+<p><small><i>Passez la souris sur une valeur pour voir le détail du calcul et la liste des segments</i></small></p>
 
 <br>
 <table width="80%">    
@@ -47,9 +51,11 @@
                     {% for mois in lm %}                                                                
                         {% with vam=annee|makekey:mois|get_vam:context %}
                         {% with nb=annee|makekey:mois|get_vam_count:context %}
-                        <td align="center" style="{{ vam|get_td_color }}" class="vam-cell" title="{% if nb %}{{ nb }} montées = {{ vam }} m/h{% else %}Aucune donnée{% endif %}">                            
+                        {% with segments=annee|makekey:mois|get_vam_segments:context %}
+                        <td align="center" style="{{ vam|get_td_color }}" class="vam-cell" title="{% if nb %}{{ nb }} montées = {{ vam }} m/h&#10;Segments: {{ segments }}{% else %}Aucune donnée{% endif %}">                            
                         {{ vam }}                            
                         </td>
+                        {% endwith %}
                         {% endwith %}
                         {% endwith %}
                     {% endfor %} 
@@ -68,7 +74,7 @@
     <li><b>Pour chaque montée</b> : VAM = (3600 × dénivelé en m) / temps en secondes</li>
     <li><b>Pour chaque mois</b> : Moyenne = somme de toutes les VAM / nombre de montées</li>
 </ul>
-<p><i>Passez la souris sur une valeur pour voir combien de montées ont été prises en compte ce mois-là.</i></p>
+<p><i>Passez la souris sur une valeur pour voir le nombre de montées, la VAM moyenne, et la liste des segments réalisés ce mois-là.</i></p>
 
 {% endblock %}
 </body>
